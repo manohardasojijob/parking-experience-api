@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<!-- Generic connector to Parking Process API -->
+	<sub-flow name="invoke-process-api" doc:name="Invoke Process API">
+		<choice doc:name="Method?">
+			<when expression="#[vars.targetMethod == 'GET' or vars.targetMethod == 'DELETE']">
+				<set-payload value="#[null]" doc:name="No body for GET/DELETE" />
+			</when>
+			<when expression="#[vars.targetMethod == 'POST' or vars.targetMethod == 'PATCH']">
+				<set-payload value="#[vars.targetBody default payload]" doc:name="Body from targetBody" />
+			</when>
+		</choice>
+
+		<http:request method="#[vars.targetMethod]" path="#[vars.targetPath]" config-ref="ParkingProcessAPI_Request_Config" doc:name="Call Parking Process API" responseTimeout="${connector.response.timeout}">
+			<http:headers><![CDATA[#[output application/java ---
+{
+  "Accept": "application/json",
+  "Content-Type": "application/json",
+  "X-Correlation-Id": (vars.correlationId default attributes.headers['X-Correlation-Id'] default uuid())
+}]]]></http:headers>
+			<http:response-validator>
+				<http:success-status-code-validator values="200..599"/>
+			</http:response-validator>
+		</http:request>
+
+		<ee:transform doc:name="Propagate HTTP status from Process API">
+			<ee:variables>
+				<ee:set-variable variableName="httpStatus">#[attributes.statusCode default 200]</ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+
+	<!-- GET /health - local response, no Process API -->
+	<sub-flow name="impl-get-health" doc:name="impl-get-health">
+		<ee:transform doc:name="Health response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  timestamp: now() as String { format: "yyyy-MM-dd'T'HH:mm:ss'Z'" },
+  status: "Running",
+  details: {
+    appName: "parking-experience-api"
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+
+	<!-- POST /users/register - delegate to Parking Process API -->
+	<sub-flow name="impl-post-users-register" doc:name="impl-post-users-register">
+		<ee:transform doc:name="Set vars for Process API">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["POST"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/users/register"]]></ee:set-variable>
+				<ee:set-variable variableName="targetBody"><![CDATA[#[payload]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</sub-flow>
+
+</mule>
+

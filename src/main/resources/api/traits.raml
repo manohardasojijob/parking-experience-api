@@ -1,0 +1,53 @@
+#%RAML 1.0 Library
+usage: Common traits for errors, pagination, and correlation
+
+uses:
+  parkingTypes: parking-domain-types.raml
+
+traits:
+  Error400:
+    responses:
+      400:
+        body:
+          application/json:
+            type: parkingTypes.Error
+
+  Error404:
+    responses:
+      404:
+        body:
+          application/json:
+            type: parkingTypes.Error
+
+  Error409:
+    responses:
+      409:
+        body:
+          application/json:
+            type: parkingTypes.Error
+
+  Error503:
+    responses:
+      503:
+        body:
+          application/json:
+            type: parkingTypes.Error
+
+  Paged:
+    queryParameters:
+      limit:
+        required: false
+        type: integer
+        default: 50
+      offset:
+        required: false
+        type: integer
+        default: 0
+
+  CorrelationId:
+    headers:
+      X-Correlation-Id:
+        required: false
+        type: string
+        description: Correlates requests across services.
+

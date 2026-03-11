@@ -1,0 +1,16 @@
+api:
+  path: "/api/v1/*"
+
+http:
+  private:
+    port: "8093"
+
+parking:
+  process:
+    api:
+      host: "localhost"
+      port: "8092"
+      pathPrefix: "/api/v1"
+      protocol: "HTTP"
+
+

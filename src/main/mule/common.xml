@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<sub-flow name="log-start" doc:name="log-start">
+		<ee:transform doc:name="Prepare start log">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  event: "REQUEST_START",
+  appName: p("current.app.name") default "parking-experience-api",
+  method: attributes.method default "",
+  path: attributes.requestPath default "",
+  correlationId: attributes.headers."X-Correlation-Id" default (vars.correlationId default ""),
+  queryParams: attributes.queryParams default {},
+  timestamp: now()
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" message="#[payload]" doc:name="Log start" />
+	</sub-flow>
+
+	<sub-flow name="log-end" doc:name="log-end">
+		<ee:transform doc:name="Prepare end log">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  event: "REQUEST_END",
+  appName: p("current.app.name") default "parking-experience-api",
+  method: attributes.method default "",
+  path: attributes.requestPath default "",
+  correlationId: attributes.headers."X-Correlation-Id" default (vars.correlationId default ""),
+  status: vars.httpStatus default 200,
+  timestamp: now()
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" message="#[payload]" doc:name="Log end" />
+	</sub-flow>
+</mule>
+

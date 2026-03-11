@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule 	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<import file="implementation.xml" doc:name="Import implementation" />
+	<import file="common.xml" doc:name="Import common logging" />
+
+	<flow name="parking-experience-api-main">
+		<http:listener config-ref="parking-experience-api-httpListenerConfig" path="${api.path}">
+			<http:response statusCode="#[vars.httpStatus default 200]">
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:response>
+			<http:error-response statusCode="#[vars.httpStatus default 500]">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:error-response>
+		</http:listener>
+
+		<apikit:router config-ref="parking-experience-api-config" />
+	</flow>
+
+	<flow name="parking-experience-api-console">
+		<http:listener config-ref="parking-experience-api-httpListenerConfig" path="/console/*">
+			<http:response statusCode="#[vars.httpStatus default 200]">
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:response>
+			<http:error-response statusCode="#[vars.httpStatus default 500]">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:error-response>
+		</http:listener>
+		<apikit:console config-ref="parking-experience-api-config" />
+	</flow>
+
+	<!-- Health -->
+	<flow name="get:\health:parking-experience-api-config">
+		<flow-ref name="impl-get-health" doc:name="impl-get-health" />
+	</flow>
+
+	<!-- Orchestration / Pass-through to Parking Process API -->
+
+	<flow name="get:\availability-by-city:parking-experience-api-config">
+		<flow-ref doc:name="log-start" doc:id="ff5d9f14-7df7-4606-9951-8993b2eb9206" name="log-start" />
+		<ee:transform doc:name="Set availability-by-city vars">
+			<ee:variables>
+				<ee:set-variable variableName="city"><![CDATA[#[attributes.queryParams.city]]]></ee:set-variable>
+				<ee:set-variable variableName="limit"><![CDATA[#[attributes.queryParams.limit default 20]]]></ee:set-variable>
+				<ee:set-variable variableName="offset"><![CDATA[#[attributes.queryParams.offset default 0]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["GET"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA[
+					"/api/v1/availability-by-city?city=" ++ (attributes.queryParams.city default "")
+					++ "&limit=" ++ (attributes.queryParams.limit default 20)
+					++ "&offset=" ++ (attributes.queryParams.offset default 0)
+				]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="get:\zones\(zoneId)\availability:parking-experience-api-config">
+		<ee:transform doc:name="Set zone-availability vars">
+			<ee:variables>
+				<ee:set-variable variableName="zoneId"><![CDATA[#[attributes.uriParams.zoneId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["GET"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA[#[
+					"/api/v1/zones/" ++ (attributes.uriParams.zoneId default "") ++ "/availability"
+				]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="get:\lots\(lotId)\availability:parking-experience-api-config">
+		<ee:transform doc:name="Set lot-availability vars">
+			<ee:variables>
+				<ee:set-variable variableName="lotId"><![CDATA[#[attributes.uriParams.lotId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["GET"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA[#[
+					"/api/v1/lots/" ++ (attributes.uriParams.lotId default "") ++ "/availability"
+				]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="post:\holds:application\json:parking-experience-api-config">
+		<ee:transform doc:name="Set post-holds vars">
+			<ee:variables>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["POST"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/holds"]]></ee:set-variable>
+				<ee:set-variable variableName="targetBody"><![CDATA[#[payload]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="get:\holds\(holdId):parking-experience-api-config">
+		<ee:transform doc:name="Set get-hold vars">
+			<ee:variables>
+				<ee:set-variable variableName="holdId"><![CDATA[#[attributes.uriParams.holdId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["GET"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/holds/" ++ (attributes.uriParams.holdId default "")
+				]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="delete:\holds\(holdId):parking-experience-api-config">
+		<ee:transform doc:name="Set delete-hold vars">
+			<ee:variables>
+				<ee:set-variable variableName="holdId"><![CDATA[#[attributes.uriParams.holdId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["DELETE"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/holds/" ++ (attributes.uriParams.holdId default "")
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="get:\reservations:parking-experience-api-config">
+		<ee:transform doc:name="Set get-reservations vars">
+			<ee:variables>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["GET"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/reservations" ++
+					(if (sizeOf(attributes.queryParams default {}) > 0)
+						("?" ++ ((attributes.queryParams default {} pluck (v,k) -> k ++ "=" ++ (v as String)) joinBy "&"))
+					else
+						"")]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="post:\reservations:application\json:parking-experience-api-config">
+		<ee:transform doc:name="Set post-reservations vars">
+			<ee:variables>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["POST"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/reservations"]]></ee:set-variable>
+				<ee:set-variable variableName="targetBody"><![CDATA[#[payload]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="get:\reservations\(reservationId):parking-experience-api-config">
+		<ee:transform doc:name="Set get-reservation vars">
+			<ee:variables>
+				<ee:set-variable variableName="reservationId"><![CDATA[#[attributes.uriParams.reservationId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["GET"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/reservations/" ++ (attributes.uriParams.reservationId default "")
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="patch:\reservations\(reservationId):application\json:parking-experience-api-config">
+		<ee:transform doc:name="Set patch-reservation vars">
+			<ee:variables>
+				<ee:set-variable variableName="reservationId"><![CDATA[#[attributes.uriParams.reservationId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["PATCH"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA[#[
+					"/api/v1/reservations/" ++ (attributes.uriParams.reservationId default "")
+				]]]></ee:set-variable>
+				<ee:set-variable variableName="targetBody"><![CDATA[#[payload]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="post:\reservations\(reservationId)\confirm:parking-experience-api-config">
+		<ee:transform doc:name="Set confirm-reservation vars">
+			<ee:variables>
+				<ee:set-variable variableName="reservationId"><![CDATA[#[attributes.uriParams.reservationId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["POST"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/reservations/" ++ (attributes.uriParams.reservationId default "") ++ "/confirm"
+				]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="post:\reservations\(reservationId)\cancel:parking-experience-api-config">
+		<ee:transform doc:name="Set cancel-reservation vars">
+			<ee:variables>
+				<ee:set-variable variableName="reservationId"><![CDATA[#[attributes.uriParams.reservationId]]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[#[attributes.headers['X-Correlation-Id'] default uuid()]]]></ee:set-variable>
+				<ee:set-variable variableName="targetMethod"><![CDATA["POST"]]></ee:set-variable>
+				<ee:set-variable variableName="targetPath"><![CDATA["/api/v1/reservations/" ++ (attributes.uriParams.reservationId default "") ++ "/cancel"
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref name="invoke-process-api" doc:name="invoke-process-api" />
+	</flow>
+
+	<flow name="post:\users\register:application\json:parking-experience-api-config">
+		<flow-ref name="impl-post-users-register" doc:name="impl-post-users-register" />
+	</flow>
+
+</mule>
+

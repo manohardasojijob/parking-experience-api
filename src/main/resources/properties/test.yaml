@@ -1,0 +1,15 @@
+api:
+  path: "/api/v1/*"
+
+http:
+  private:
+    port: "8093"
+
+parking:
+  process:
+    api:
+      host: "parking-process-api-test.cloudhub.io"
+      port: "443"
+      pathPrefix: "/api/v1"
+      protocol: "HTTPS"
+

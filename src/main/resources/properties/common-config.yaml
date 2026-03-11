@@ -1,0 +1,28 @@
+# Experience API - common config
+current.app:
+  name: "parking-experience-api"
+  version: "0.0.1"
+
+project:
+  artifactId: "parking-experience-api"
+  version: "0.0.1"
+
+raml:
+  api:
+    location: "api/parking-experience-api.raml"
+
+# Parking Process API (backend) - base URL components for HTTP Request config
+parking:
+  process:
+    api:
+      host: "localhost"
+      port: "8092"
+      pathPrefix: "/api/v1"
+      protocol: "HTTP"
+
+connector:
+  retries: "3"
+  retryInterval: "5000"
+  response:
+    timeout: "30000"
+

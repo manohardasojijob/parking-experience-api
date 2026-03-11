@@ -1,0 +1,193 @@
+#%RAML 1.0
+title: Parking Experience API
+version: v1
+baseUri: /api/v1
+mediaType: application/json
+
+uses:
+  parkingTypes: parking-domain-types.raml
+  apiSecurity: security.raml
+  traitsLib: traits.raml
+
+securedBy: [ apiSecurity.clientEnforcement ]
+
+/health:
+  get:
+    description: Liveness health check.
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              { "status": "Running", "details": { "appName": "parking-experience-api" } }
+
+/availability-by-city:
+  get:
+    description: Lots in city with availability per lot (delegates to Parking Process API).
+    is: [ traitsLib.Paged, traitsLib.CorrelationId, traitsLib.Error400, traitsLib.Error503 ]
+    queryParameters:
+      city:
+        required: true
+        type: string
+    responses:
+      200:
+        body:
+          application/json:
+            type: parkingTypes.AvailabilityByCityResponse
+
+/zones/{zoneId}/availability:
+  uriParameters:
+    zoneId:
+      type: string
+  get:
+    description: Lots in zone with availability (delegates to Parking Process API).
+    is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error503 ]
+    responses:
+      200:
+        body:
+          application/json:
+            type: parkingTypes.ZoneAvailabilityResponse
+
+/lots/{lotId}/availability:
+  uriParameters:
+    lotId:
+      type: string
+  get:
+    description: Availability for a single lot (delegates to Parking Process API).
+    is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error503 ]
+    responses:
+      200:
+        body:
+          application/json:
+            type: parkingTypes.AvailabilitySummary
+
+/holds:
+  post:
+    description: Create a hold (delegates to Parking Process API).
+    is: [ traitsLib.CorrelationId, traitsLib.Error400, traitsLib.Error409, traitsLib.Error503 ]
+    body:
+      application/json:
+        type: parkingTypes.HoldRequest
+    responses:
+      201:
+        body:
+          application/json:
+            type: parkingTypes.Hold
+  /{holdId}:
+    uriParameters:
+      holdId:
+        type: string
+    get:
+      description: Get hold by ID (delegates to Parking Process API).
+      is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error503 ]
+      responses:
+        200:
+          body:
+            application/json:
+              type: parkingTypes.Hold
+    delete:
+      description: Release a hold (delegates to Parking Process API).
+      is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error503 ]
+      responses:
+        200:
+          body:
+            application/json:
+              type: parkingTypes.Hold
+
+/reservations:
+  get:
+    description: List reservations (delegates to Parking Process API).
+    is: [ traitsLib.Paged, traitsLib.CorrelationId, traitsLib.Error400, traitsLib.Error503 ]
+    queryParameters:
+      userId:
+        required: false
+        type: string
+      status:
+        required: false
+        type: string
+    responses:
+      200:
+        body:
+          application/json:
+            type: parkingTypes.ReservationList
+  post:
+    description: |
+      Create a reservation (delegates to Parking Process API).
+      The Process API validates that the userId exists in the User System (Salesforce).
+      If the user is not registered, returns 409 with code USER_NOT_REGISTERED.
+      Clients should prompt the user to register via POST /users/register, then retry with the returned userId.
+    is: [ traitsLib.CorrelationId, traitsLib.Error400, traitsLib.Error409, traitsLib.Error503 ]
+    body:
+      application/json:
+        type: parkingTypes.ReservationRequest
+    responses:
+      201:
+        body:
+          application/json:
+            type: parkingTypes.Reservation
+      409:
+        description: User not registered. Client should prompt registration via POST /users/register.
+        body:
+          application/json:
+            type: parkingTypes.UserValidationError
+  /{reservationId}:
+    uriParameters:
+      reservationId:
+        type: string
+    get:
+      description: Get reservation by ID (delegates to Parking Process API).
+      is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error503 ]
+      responses:
+        200:
+          body:
+            application/json:
+              type: parkingTypes.Reservation
+    patch:
+      description: Update reservation (delegates to Parking Process API).
+      is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error400, traitsLib.Error503 ]
+      body:
+        application/json:
+          type: parkingTypes.ReservationUpdate
+      responses:
+        200:
+          body:
+            application/json:
+              type: parkingTypes.Reservation
+    /confirm:
+      post:
+        description: Confirm a reservation (delegates to Parking Process API).
+        is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error503 ]
+        responses:
+          200:
+            body:
+              application/json:
+                type: parkingTypes.Reservation
+    /cancel:
+      post:
+        description: Cancel a reservation (delegates to Parking Process API).
+        is: [ traitsLib.CorrelationId, traitsLib.Error404, traitsLib.Error503 ]
+        responses:
+          200:
+            body:
+              application/json:
+                type: parkingTypes.Reservation
+
+/users/register:
+  post:
+    description: Register a user in the User System (Salesforce). Returns the created user with Id to use as userId for reservations.
+    is: [ traitsLib.CorrelationId, traitsLib.Error400, traitsLib.Error409, traitsLib.Error503 ]
+    body:
+      application/json:
+        type: parkingTypes.UserRegistrationRequest
+    responses:
+      201:
+        body:
+          application/json:
+            type: parkingTypes.User
+        description: User created (no matching record by email)
+      200:
+        body:
+          application/json:
+            type: parkingTypes.User
+        description: User updated (existing record matched by email)
+
