@@ -15,8 +15,8 @@
 		<api.version>v1</api.version>
 		<ap.visualizer.layer>Experience</ap.visualizer.layer>
 		<global-error-handler.version>1.0.0</global-error-handler.version>
-		<munit.version>3.7.0</munit.version>
 		<raml.api.location>api/parking-experience-api.raml</raml.api.location>
+                <munit.version>3.7.0</munit.version>
 	</properties>
 
 	<build>
@@ -31,7 +31,6 @@
 				<artifactId>mule-maven-plugin</artifactId>
 				<version>4.7.0</version>
 				<extensions>true</extensions>
-				
 				<configuration>
 					<classifier>mule-application</classifier>
 					<cloudhub2Deployment>
@@ -41,12 +40,13 @@
 						<target>Cloudhub-US-East-2</target>
 						<applicationName>${project.artifactId}</applicationName>
 						<releaseChannel>NONE</releaseChannel>
+                                                <businessGroupId>cabb7133-46c6-49fb-867e-ee1dd40d3c21</businessGroupId>
 						<replicas>1</replicas>
 						<vCores>0.1</vCores>
-						<username>${env.ANYPOINT_USERNAME}</username>
-                        <password>${env.ANYPOINT_PASSWORD}</password>
+                                                <username>${env.ANYPOINT_USERNAME}</username>
+                                                <password>${env.ANYPOINT_PASSWORD}</password>
 						<deploymentSettings>
-							<generateDefaultPublicUrl>true</generateDefaultPublicUrl>
+					        <generateDefaultPublicUrl>true</generateDefaultPublicUrl>
 						</deploymentSettings>
 					</cloudhub2Deployment>
 				</configuration>
@@ -136,8 +136,7 @@
 				</dependency>
 			</dependencies>
 		</profile>
-	
-    <profile>
+<profile>
 			<id>java17</id>
 			<properties>
 				<munit.version>3.7.0</munit.version>
@@ -163,6 +162,7 @@
 			</pluginRepositories>
 		</profile>
 	</profiles>
+
 	<repositories>
 		<repository>
 			<id>anypoint-exchange-v3</id>
