@@ -66,8 +66,8 @@ jobs:
         working-directory: .
 
     env:
-      CONNECTED_APP_CLIENT_ID: ${{ secrets.CONNECTED_APP_CLIENT_ID }}
-      CONNECTED_APP_CLIENT_SECRET: ${{ secrets.CONNECTED_APP_CLIENT_SECRET }}
+      USERNAME: ${{ secrets.ANYPOINT_USERNAME }}
+      CONNECTED_APP_CLIENT_SECRET: ${{ secrets.ANYPOINT_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -102,15 +102,18 @@ jobs:
               {"id": "mulesoft-releases", "name": "MuleSoft Releases", "url": "https://repository.mulesoft.org/releases/", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
               {"id": "mulesoft-public", "name": "MuleSoft Public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public", "releases": {"enabled": true}, "snapshots": {"enabled": false}},
               {"id": "anypoint-exchange-v3", "name": "Anypoint Exchange V3", "url": "https://maven.anypoint.mulesoft.com/api/v3/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
-              {"id": "anypoint-exchange-org", "name": "Anypoint Exchange Organization", "url": "https://maven.anypoint.mulesoft.com/api/v3/organizations/905c6ea1-68d6-417c-a056-de0944741f75/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
+              {"id": "anypoint-exchange-org", "name": "Anypoint Exchange Organization", "url": "https://maven.anypoint.mulesoft.com/api/v3/organizations/cabb7133-46c6-49fb-867e-ee1dd40d3c21/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
             ]
           plugin_repositories: |
             [{"id": "mulesoft-releases", "url": "https://repository.mulesoft.org/releases/"}, {"id": "mule-public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public"}]
           servers: |
             [
-              {"id": "anypoint-exchange-v3", "username": "~~~Client~~~", "password": "${{ secrets.CONNECTED_APP_CLIENT_ID }}~?~${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"},
-              {"id": "anypoint-exchange-org", "username": "~~~Client~~~", "password": "${{ secrets.CONNECTED_APP_CLIENT_ID }}~?~${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"}
+              {"id": "anypoint-exchange-v3", "username": "$USERNAME", "password": "$PASSWORD"},
+              {"id": "anypoint-exchange-org", "username": "$USERNAME", "password": "$PASSWORD"}
             ]
 
       - name: Publish to Exchange and Deploy to CloudHub 2.0
-        run: mvn -B deploy -DmuleDeploy
+        run: mvn -B deploy -DmuleDeploy \
+             -Dmule.artifact=$artifactName \
+             -Danypoint.username="$USERNAME" \
+             -Danypoint.password="$PASSWORD" 
