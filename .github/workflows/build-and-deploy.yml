@@ -1,0 +1,111 @@
+# CI/CD for parking-experience-api - Build and Deploy to CloudHub 2.0
+# Triggers: push to main/develop, manual workflow_dispatch
+# Prerequisites: CONNECTED_APP_CLIENT_ID, CONNECTED_APP_CLIENT_SECRET in repo Secrets
+# Note: If this app is in a monorepo, use the workflow at repo root .github/workflows/ instead.
+
+name: Build and Deploy to CloudHub 2.0
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Configure Maven settings for Exchange
+        uses: whelk-io/maven-settings-xml-action@v20
+        with:
+          repositories: |
+            [
+              {"id": "maven-central", "name": "Maven Central", "url": "https://repo1.maven.org/maven2/", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "mulesoft-releases", "name": "MuleSoft Releases", "url": "https://repository.mulesoft.org/releases/", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "mulesoft-public", "name": "MuleSoft Public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public", "releases": {"enabled": true}, "snapshots": {"enabled": false}},
+              {"id": "anypoint-exchange-v3", "name": "Anypoint Exchange V3", "url": "https://maven.anypoint.mulesoft.com/api/v3/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "anypoint-exchange-org", "name": "Anypoint Exchange Organization", "url": "https://maven.anypoint.mulesoft.com/api/v3/organizations/905c6ea1-68d6-417c-a056-de0944741f75/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
+            ]
+          plugin_repositories: |
+            [{"id": "mulesoft-releases", "url": "https://repository.mulesoft.org/releases/"}, {"id": "mule-public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public"}]
+          servers: |
+            [
+              {"id": "anypoint-exchange-v3", "username": "~~~Client~~~", "password": "${{ secrets.CONNECTED_APP_CLIENT_ID }}~?~${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"},
+              {"id": "anypoint-exchange-org", "username": "~~~Client~~~", "password": "${{ secrets.CONNECTED_APP_CLIENT_ID }}~?~${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"}
+            ]
+
+      - name: Build and Test
+        run: mvn -B clean package
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    env:
+      CONNECTED_APP_CLIENT_ID: ${{ secrets.CONNECTED_APP_CLIENT_ID }}
+      CONNECTED_APP_CLIENT_SECRET: ${{ secrets.CONNECTED_APP_CLIENT_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Configure Maven settings for Exchange
+        uses: whelk-io/maven-settings-xml-action@v20
+        with:
+          repositories: |
+            [
+              {"id": "maven-central", "name": "Maven Central", "url": "https://repo1.maven.org/maven2/", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "mulesoft-releases", "name": "MuleSoft Releases", "url": "https://repository.mulesoft.org/releases/", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "mulesoft-public", "name": "MuleSoft Public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public", "releases": {"enabled": true}, "snapshots": {"enabled": false}},
+              {"id": "anypoint-exchange-v3", "name": "Anypoint Exchange V3", "url": "https://maven.anypoint.mulesoft.com/api/v3/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "anypoint-exchange-org", "name": "Anypoint Exchange Organization", "url": "https://maven.anypoint.mulesoft.com/api/v3/organizations/905c6ea1-68d6-417c-a056-de0944741f75/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
+            ]
+          plugin_repositories: |
+            [{"id": "mulesoft-releases", "url": "https://repository.mulesoft.org/releases/"}, {"id": "mule-public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public"}]
+          servers: |
+            [
+              {"id": "anypoint-exchange-v3", "username": "~~~Client~~~", "password": "${{ secrets.CONNECTED_APP_CLIENT_ID }}~?~${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"},
+              {"id": "anypoint-exchange-org", "username": "~~~Client~~~", "password": "${{ secrets.CONNECTED_APP_CLIENT_ID }}~?~${{ secrets.CONNECTED_APP_CLIENT_SECRET }}"}
+            ]
+
+      - name: Publish to Exchange and Deploy to CloudHub 2.0
+        run: mvn -B deploy -DmuleDeploy

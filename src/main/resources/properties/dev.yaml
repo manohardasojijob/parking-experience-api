@@ -1,9 +1,10 @@
 api:
   path: "/api/v1/*"
+  id: "20786429"
 
 http:
   private:
-    port: "8093"
+    port: "8081"
 
 parking:
   process:
@@ -12,5 +13,5 @@ parking:
       port: "443"
       pathPrefix: "/api/v1"
       protocol: "HTTPS"
-      clientId: "dummy-client-id"
-      clientSecret: "dummy-client-secret"
+      clientId: "![MqROAEP1Os9k2Szlf7jbq+GQ9BVr52COUGxX/BiGgkvOdg6B5Awu/w==]"
+      clientSecret: "![iYKeuGGjNfwULa2pPsLX0FBwtR8s0i/yVgNq8k/aasdn+X7L4QN+Mg==]"

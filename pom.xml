@@ -48,6 +48,22 @@
 				</dependencies>
 				<configuration>
 					<classifier>mule-application</classifier>
+					<cloudhub2Deployment>
+						<uri>https://anypoint.mulesoft.com</uri>
+						<provider>MC</provider>
+						<environment>Sandbox</environment>
+						<target>Cloudhub-US-East-2</target>
+						<applicationName>${project.artifactId}</applicationName>
+						<releaseChannel>NONE</releaseChannel>
+						<replicas>1</replicas>
+						<vCores>0.1</vCores>
+						<connectedAppClientId>${env.CONNECTED_APP_CLIENT_ID}</connectedAppClientId>
+						<connectedAppClientSecret>${env.CONNECTED_APP_CLIENT_SECRET}</connectedAppClientSecret>
+						<connectedAppGrantType>client_credentials</connectedAppGrantType>
+						<deploymentSettings>
+							<generateDefaultPublicUrl>true</generateDefaultPublicUrl>
+						</deploymentSettings>
+					</cloudhub2Deployment>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -144,5 +160,20 @@
 			<url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
 			<layout>default</layout>
 		</repository>
+		<repository>
+			<id>anypoint-exchange-org</id>
+			<name>Anypoint Exchange Organization</name>
+			<url>https://maven.anypoint.mulesoft.com/api/v3/organizations/905c6ea1-68d6-417c-a056-de0944741f75/maven</url>
+			<layout>default</layout>
+		</repository>
 	</repositories>
+
+	<distributionManagement>
+		<repository>
+			<id>anypoint-exchange-org</id>
+			<name>Corporate Repository</name>
+			<url>https://maven.anypoint.mulesoft.com/api/v3/organizations/905c6ea1-68d6-417c-a056-de0944741f75/maven</url>
+			<layout>default</layout>
+		</repository>
+	</distributionManagement>
 </project>
