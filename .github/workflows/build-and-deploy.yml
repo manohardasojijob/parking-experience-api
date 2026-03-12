@@ -67,7 +67,7 @@ jobs:
 
     env:
       USERNAME: ${{ secrets.ANYPOINT_USERNAME }}
-      CONNECTED_APP_CLIENT_SECRET: ${{ secrets.ANYPOINT_PASSWORD }}
+      PASSWORD: ${{ secrets.ANYPOINT_PASSWORD }}
 
     steps:
       - name: Checkout
