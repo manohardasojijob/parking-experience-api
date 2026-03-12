@@ -2,11 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>905c6ea1-68d6-417c-a056-de0944741f75</groupId>
-		<artifactId>pom-parent</artifactId>
-		<version>0.9.3</version>
-	</parent>
+	
 
 	<groupId>com.acme</groupId>
 	<artifactId>parking-experience-api</artifactId>
