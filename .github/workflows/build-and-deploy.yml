@@ -102,6 +102,9 @@ jobs:
           name: mule-application-jar
           path: target/
 
-      # CRITICAL FIX: The -U flag here ensures Exchange metadata is also forcefully refreshed
-      - name: Publish to Exchange and Deploy to CloudHub 2.0
-        run: mvn -B deploy -DmuleDeploy -DskipTests -s ~/.m2/settings.xml -U
+       - name: Publish Artifact to Anypoint Exchange
+        run: mvn -B deploy -DskipTests -s ~/.m2/settings.xml -U
+
+      #  - Tell CloudHub 2.0 to fetch the asset from Exchange and spin up the replica
+      - name: Deploy to CloudHub 2.0 Infrastructure
+        run: mvn -B mule:deploy -DmuleDeploy -DskipTests -s ~/.m2/settings.xml -Dmule.env=dev -Dmule.vault.key="${{ secrets.MULE_VAULT_KEY }}"

@@ -47,6 +47,13 @@
 						<replicas>1</replicas>
 						<vCores>0.1</vCores>
                                                 <server>anypoint-exchange-org</server>
+                                                <properties>
+                                                     <mule.env>${mule.env}</mule.env>
+                                                </properties>
+
+                                                <secureProperties>
+                                                    <mule.vault.key>${mule.vault.key}</mule.vault.key>
+                                                </secureProperties>
 						<deploymentSettings>
 					        <generateDefaultPublicUrl>true</generateDefaultPublicUrl>
 						</deploymentSettings>
