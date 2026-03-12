@@ -1,6 +1,7 @@
 # CI/CD for parking-experience-api - Build and Deploy to CloudHub 2.0
 # Triggers: push to main/develop, manual workflow_dispatch
-# Prerequisites: ANYPOINT_USERNAME, ANYPOINT_PASSWORD in repo Secrets
+# Prerequisites: CONNECTED_APP_CLIENT_ID, CONNECTED_APP_CLIENT_SECRET in repo Secrets
+# Note: If this app is in a monorepo, use the workflow at repo root .github/workflows/ instead.
 
 name: Build and Deploy to CloudHub 2.0
 
@@ -11,10 +12,13 @@ on:
 
 jobs:
   build:
-    name: Build and Test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -23,6 +27,14 @@ jobs:
           java-version: "17"
           distribution: temurin
           cache: maven
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Configure Maven settings for Exchange
         uses: whelk-io/maven-settings-xml-action@v20
@@ -39,28 +51,26 @@ jobs:
             [{"id": "mulesoft-releases", "url": "https://repository.mulesoft.org/releases/"}, {"id": "mule-public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public"}]
           servers: |
             [
-              {"id": "anypoint-exchange-server", "username": "${{ secrets.ANYPOINT_USERNAME }}", "password": "${{ secrets.ANYPOINT_PASSWORD }}"},
               {"id": "anypoint-exchange-v3", "username": "${{ secrets.ANYPOINT_USERNAME }}", "password": "${{ secrets.ANYPOINT_PASSWORD }}"},
               {"id": "anypoint-exchange-org", "username": "${{ secrets.ANYPOINT_USERNAME }}", "password": "${{ secrets.ANYPOINT_PASSWORD }}"}
             ]
 
-      - name: Compile and Run MUnit Tests
+      - name: Build and Test
         run: mvn -B clean package
 
-      # ARCHITECTURE OPTIMIZATION: Save the compiled .jar so the next job doesn't rebuild it
-      - name: Upload Compiled Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mule-application-jar
-          path: target/*.jar
-          retention-days: 1
-
   deploy:
-    name: Publish and Deploy
     needs: build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    env:
+      USERNAME: ${{ secrets.ANYPOINT_USERNAME }}
+      PASSWORD: ${{ secrets.ANYPOINT_PASSWORD }}
+
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -69,13 +79,20 @@ jobs:
           java-version: "17"
           distribution: temurin
           cache: maven
-        
-      # ENVIRONMENT FIX: Forces Maven 3.8.8 to prevent the Aether API crash with older Mule plugins
-      - name: Set up Maven 3.8.8
+       
+      - name: Set up Maven 3.8
         uses: stcarolas/setup-maven@v4
         with:
           maven-version: "3.8.8"
 
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Configure Maven settings for Exchange
         uses: whelk-io/maven-settings-xml-action@v20
         with:
@@ -91,19 +108,9 @@ jobs:
             [{"id": "mulesoft-releases", "url": "https://repository.mulesoft.org/releases/"}, {"id": "mule-public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public"}]
           servers: |
             [
-              {"id": "anypoint-exchange-server", "username": "${{ secrets.ANYPOINT_USERNAME }}", "password": "${{ secrets.ANYPOINT_PASSWORD }}"},
-              {"id": "anypoint-exchange-v3", "username": "${{ secrets.ANYPOINT_USERNAME }}", "password": "${{ secrets.ANYPOINT_PASSWORD }}"},
-              {"id": "anypoint-exchange-org", "username": "${{ secrets.ANYPOINT_USERNAME }}", "password": "${{ secrets.ANYPOINT_PASSWORD }}"}
+              {"id": "anypoint-exchange-v3", "username": "$USERNAME", "password": "$PASSWORD"},
+              {"id": "anypoint-exchange-org", "username": "$USERNAME", "password": "$PASSWORD"}
             ]
 
-      # ARCHITECTURE OPTIMIZATION: Retrieve the compiled .jar from the previous job
-      - name: Download Compiled Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: mule-application-jar
-          path: target/
-
-      # DEPLOYMENT: The -DskipTests flag is crucial here. Since the 'build' job already tested the code,
-      # this prevents Maven from spinning up the MUnit container a second time during the deploy lifecycle.
       - name: Publish to Exchange and Deploy to CloudHub 2.0
-        run: mvn -B deploy -DmuleDeploy -DskipTests
+        run: mvn -B deploy -DmuleDeploy -DskipTests -s ~/.m2/settings.xml
