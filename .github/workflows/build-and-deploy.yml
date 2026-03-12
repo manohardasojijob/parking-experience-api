@@ -114,6 +114,5 @@ jobs:
 
       - name: Publish to Exchange and Deploy to CloudHub 2.0
         run: mvn -B deploy -DmuleDeploy \
-             -Dmule.artifact=$artifactName \
              -Danypoint.username="$USERNAME" \
              -Danypoint.password="$PASSWORD" 
