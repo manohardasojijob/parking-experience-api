@@ -1,6 +1,3 @@
-# CI/CD for parking-experience-api - Build and Deploy to CloudHub 2.0
-# Triggers: push to main/develop, manual workflow_dispatch
-
 name: Build and Deploy to CloudHub 2.0
 
 on:
@@ -28,12 +25,14 @@ jobs:
         with:
           repositories: |
             [
-              {"id": "anypoint-exchange-v3", "name": "Anypoint Exchange V3", "url": "https://maven.anypoint.mulesoft.com/api/v3/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
-              {"id": "mulesoft-releases", "name": "MuleSoft Releases", "url": "https://repository.mulesoft.org/releases/", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
+              {"id": "mulesoft-releases", "name": "MuleSoft Releases", "url": "https://repository.mulesoft.org/releases/", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "mulesoft-public", "name": "MuleSoft Public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public", "releases": {"enabled": true}, "snapshots": {"enabled": false}},
+              {"id": "anypoint-exchange-v3", "name": "Anypoint Exchange V3", "url": "https://maven.anypoint.mulesoft.com/api/v3/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
             ]
           plugin_repositories: |
             [
-              {"id": "mulesoft-plugin-releases", "url": "https://repository.mulesoft.org/releases/"}
+              {"id": "mulesoft-releases", "url": "https://repository.mulesoft.org/releases/"},
+              {"id": "mulesoft-public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public"}
             ]
           servers: |
             [
@@ -41,8 +40,9 @@ jobs:
               {"id": "anypoint-exchange-v3", "username": "${{ secrets.ANYPOINT_USERNAME }}", "password": "${{ secrets.ANYPOINT_PASSWORD }}"}
             ]
 
+      # CRITICAL FIX: The -U flag forces Maven to ignore the broken cache
       - name: Compile and Run MUnit Tests
-        run: mvn -B clean package
+        run: mvn -B clean package -U
 
       - name: Upload Compiled Artifact
         uses: actions/upload-artifact@v4
@@ -56,7 +56,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     
-    # Exposes these to the runner so the pom.xml ${env.ANYPOINT_USERNAME} picks them up natively
     env:
       ANYPOINT_USERNAME: ${{ secrets.ANYPOINT_USERNAME }}
       ANYPOINT_PASSWORD: ${{ secrets.ANYPOINT_PASSWORD }}
@@ -72,7 +71,6 @@ jobs:
           distribution: temurin
           cache: maven
         
-      # Forces Maven 3.8.8 to prevent the Aether API crash
       - name: Set up Maven 3.8.8
         uses: stcarolas/setup-maven@v4
         with:
@@ -83,12 +81,14 @@ jobs:
         with:
           repositories: |
             [
-              {"id": "anypoint-exchange-v3", "name": "Anypoint Exchange V3", "url": "https://maven.anypoint.mulesoft.com/api/v3/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
-              {"id": "mulesoft-releases", "name": "MuleSoft Releases", "url": "https://repository.mulesoft.org/releases/", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
+              {"id": "mulesoft-releases", "name": "MuleSoft Releases", "url": "https://repository.mulesoft.org/releases/", "releases": {"enabled": true}, "snapshots": {"enabled": true}},
+              {"id": "mulesoft-public", "name": "MuleSoft Public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public", "releases": {"enabled": true}, "snapshots": {"enabled": false}},
+              {"id": "anypoint-exchange-v3", "name": "Anypoint Exchange V3", "url": "https://maven.anypoint.mulesoft.com/api/v3/maven", "releases": {"enabled": true}, "snapshots": {"enabled": true}}
             ]
           plugin_repositories: |
             [
-              {"id": "mulesoft-plugin-releases", "url": "https://repository.mulesoft.org/releases/"}
+              {"id": "mulesoft-releases", "url": "https://repository.mulesoft.org/releases/"},
+              {"id": "mulesoft-public", "url": "https://repository.mulesoft.org/nexus/content/repositories/public"}
             ]
           servers: |
             [
@@ -102,6 +102,6 @@ jobs:
           name: mule-application-jar
           path: target/
 
-      # Deploys using the generated settings file without re-running tests
+      # CRITICAL FIX: The -U flag here ensures Exchange metadata is also forcefully refreshed
       - name: Publish to Exchange and Deploy to CloudHub 2.0
-        run: mvn -B deploy -DmuleDeploy -DskipTests -s ~/.m2/settings.xml
+        run: mvn -B deploy -DmuleDeploy -DskipTests -s ~/.m2/settings.xml -U
