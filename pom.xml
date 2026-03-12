@@ -39,6 +39,8 @@
 						<environment>Sandbox</environment>
 						<target>Cloudhub-US-East-2</target>
 						<applicationName>${project.artifactId}</applicationName>
+                                                <javaVersion>17</javaVersion>
+                                                <releaseChannel>EDGE</releaseChannel>
 						<releaseChannel>NONE</releaseChannel>
                                                 <businessGroupId>cabb7133-46c6-49fb-867e-ee1dd40d3c21</businessGroupId>
 						<replicas>1</replicas>
