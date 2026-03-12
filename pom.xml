@@ -15,6 +15,7 @@
 		<api.version>v1</api.version>
 		<ap.visualizer.layer>Experience</ap.visualizer.layer>
 		<global-error-handler.version>1.0.0</global-error-handler.version>
+		<munit.version>3.7.0</munit.version>
 		<raml.api.location>api/parking-experience-api.raml</raml.api.location>
 	</properties>
 
@@ -30,6 +31,7 @@
 				<artifactId>mule-maven-plugin</artifactId>
 				<version>4.7.0</version>
 				<extensions>true</extensions>
+				
 				<configuration>
 					<classifier>mule-application</classifier>
 					<cloudhub2Deployment>
@@ -39,12 +41,10 @@
 						<target>Cloudhub-US-East-2</target>
 						<applicationName>${project.artifactId}</applicationName>
 						<releaseChannel>NONE</releaseChannel>
-                                                <businessGroupId>cabb7133-46c6-49fb-867e-ee1dd40d3c21</businessGroupId>
 						<replicas>1</replicas>
 						<vCores>0.1</vCores>
-						<connectedAppClientId>${env.CONNECTED_APP_CLIENT_ID}</connectedAppClientId>
-						<connectedAppClientSecret>${env.CONNECTED_APP_CLIENT_SECRET}</connectedAppClientSecret>
-						<connectedAppGrantType>client_credentials</connectedAppGrantType>
+						<username>${env.ANYPOINT_USERNAME}</username>
+                        <password>${env.ANYPOINT_PASSWORD}</password>
 						<deploymentSettings>
 							<generateDefaultPublicUrl>true</generateDefaultPublicUrl>
 						</deploymentSettings>
@@ -54,7 +54,7 @@
 			<plugin>
 				<groupId>com.mulesoft.munit.tools</groupId>
 				<artifactId>munit-maven-plugin</artifactId>
-				<version>2.3.14</version>
+				<version>${munit.version}</version>
 				<executions>
 					<execution>
 						<id>test</id>
@@ -87,14 +87,14 @@
 		<dependency>
 			<groupId>com.mulesoft.munit</groupId>
 			<artifactId>munit-runner</artifactId>
-			<version>2.3.14</version>
+			<version>${munit.version}</version>
 			<classifier>mule-plugin</classifier>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.mulesoft.munit</groupId>
 			<artifactId>munit-tools</artifactId>
-			<version>2.3.14</version>
+			<version>${munit.version}</version>
 			<classifier>mule-plugin</classifier>
 			<scope>test</scope>
 		</dependency>
@@ -129,15 +129,40 @@
 			<id>exchange-global-error-handler</id>
 			<dependencies>
 				<dependency>
-					<groupId>905c6ea1-68d6-417c-a056-de0944741f75</groupId>
+					<groupId>cabb7133-46c6-49fb-867e-ee1dd40d3c21</groupId>
 					<artifactId>global-error-handler</artifactId>
 					<version>${global-error-handler.version}</version>
 					<classifier>mule-plugin</classifier>
 				</dependency>
 			</dependencies>
 		</profile>
+	
+    <profile>
+			<id>java17</id>
+			<properties>
+				<munit.version>3.7.0</munit.version>
+			</properties>
+			<repositories>
+				<repository>
+					<id>mulesoft-releases</id>
+					<name>MuleSoft Releases Repository</name>
+					<url>https://repository.mulesoft.org/releases/</url>
+					<layout>default</layout>
+				</repository>
+			</repositories>
+			<pluginRepositories>
+				<pluginRepository>
+					<id>mulesoft-releases</id>
+					<name>MuleSoft Releases Repository</name>
+					<url>https://repository.mulesoft.org/releases/</url>
+					<layout>default</layout>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+				</pluginRepository>
+			</pluginRepositories>
+		</profile>
 	</profiles>
-
 	<repositories>
 		<repository>
 			<id>anypoint-exchange-v3</id>
@@ -146,9 +171,15 @@
 			<layout>default</layout>
 		</repository>
 		<repository>
-			<id>anypoint-exchange-org</id>
-			<name>Anypoint Exchange Organization</name>
-			<url>https://maven.anypoint.mulesoft.com/api/v3/organizations/905c6ea1-68d6-417c-a056-de0944741f75/maven</url>
+			<id>mulesoft-releases</id>
+			<name>MuleSoft Releases Repository</name>
+			<url>https://repository.mulesoft.org/releases/</url>
+			<layout>default</layout>
+		</repository>
+		<repository>
+			<id>mule-releases</id>
+			<name>Mule Releases Repository</name>
+			<url>https://repository-master.mulesoft.org/nexus/content/repositories/releases/</url>
 			<layout>default</layout>
 		</repository>
 	</repositories>
@@ -157,7 +188,7 @@
 		<repository>
 			<id>anypoint-exchange-org</id>
 			<name>Corporate Repository</name>
-			<url>https://maven.anypoint.mulesoft.com/api/v3/organizations/905c6ea1-68d6-417c-a056-de0944741f75/maven</url>
+			<url>https://maven.anypoint.mulesoft.com/api/v3/organizations/cabb7133-46c6-49fb-867e-ee1dd40d3c21/maven</url>
 			<layout>default</layout>
 		</repository>
 	</distributionManagement>
